@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лабораторная №9 — Fetch API</title>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 40px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+        }
+
+        #refreshButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #28a745; 
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        #refreshButton:hover {
+            background-color: #218838;
+        }
+        #refreshButton:disabled {
+            background-color: #90a4ae;
+            cursor: not-allowed;
+        }
+
+        #usersTable {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff; 
+            color: white;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        #usersTableBody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        #usersTableBody tr:hover {
+            background-color: #e9ecef;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            transform: translateY(-1px);
+            transition: all 0.2s ease-in-out;
+        }
+
+        #message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            display: none;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .error-message {
+            background-color: #fddede;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .loading-message {
+            background-color: #e6f7ff;
+            border: 1px solid #91d5ff;
+            color: #1890ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Список пользователей </h1>
+        
+        <button id="refreshButton">Обновить данные</button>
+
+        <div id="message"></div>
+
+        <table id="usersTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Имя пользователя</th>
+                    <th>Email</th>
+                    <th>Город</th>
+                </tr>
+            </thead>
+            <tbody id="usersTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = 'https://jsonplaceholder.typicode.com/users';
+        const tableBody = document.getElementById('usersTableBody');
+        const messageDiv = document.getElementById('message');
+        const refreshButton = document.getElementById('refreshButton');
+        const usersTable = document.getElementById('usersTable');
+
+        function displayError(msg) {
+            tableBody.innerHTML = '';
+            usersTable.style.display = 'none';
+            
+            messageDiv.classList.add('error-message');
+            messageDiv.classList.remove('loading-message');
+            
+            messageDiv.textContent = `Ошибка: ${msg}`;
+            messageDiv.style.display = 'block';
+        }
+
+        function displayUsers(users) {
+            messageDiv.style.display = 'none';
+            usersTable.style.display = 'table';
+            tableBody.innerHTML = '';
+
+            users.forEach(user => {
+                const row = tableBody.insertRow();
+                
+                const data = [
+                    user.id,
+                    user.name,
+                    user.email,
+                    user.address ? user.address.city : 'N/A'
+                ];
+
+                data.forEach(text => {
+                    const cell = row.insertCell();
+                    cell.textContent = text;
+                });
+            });
+        }
+
+        async function fetchUsers() {
+            refreshButton.disabled = true;
+            
+            messageDiv.textContent = 'Загрузка данных...';
+            messageDiv.classList.add('loading-message');
+            messageDiv.classList.remove('error-message');
+            messageDiv.style.display = 'block';
+            usersTable.style.display = 'none';
+
+            try {
+                const response = await fetch(API_URL);
+
+                if (!response.ok) {
+                    throw new Error(`Ошибка HTTP: ${response.status} (${response.statusText || 'Неизвестная ошибка'})`);
+                }
+
+                const data = await response.json();
+                
+                if (Array.isArray(data)) {
+                    displayUsers(data);
+                } else {
+                    throw new Error('Некорректный формат данных от сервера.');
+                }
+
+            } catch (error) {
+                console.error('Ошибка получения данных:', error);
+                displayError(error.message);
+            } finally {
+                refreshButton.disabled = false;
+            }
+        }
+
+        window.onload = fetchUsers;
+
+        refreshButton.addEventListener('click', fetchUsers);
+    </script>
+</body>
+</html>
